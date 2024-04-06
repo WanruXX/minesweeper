@@ -1,8 +1,9 @@
 use bevy::prelude::*;
 use bevy::window::{Window, WindowResolution, WindowPlugin};
 
-#[cfg(debug_assertions)]
+#[cfg(feature = "inspect")]
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
+#[cfg(feature = "inspect")]
 use bevy::input::common_conditions;
 
 
@@ -19,7 +20,7 @@ fn main() {
         ..default()
       }));
 
-    #[cfg(debug_assertions)]
+      #[cfg(feature = "inspect")]
     app.add_plugins(WorldInspectorPlugin::default().run_if(common_conditions::input_toggle_active(true, KeyCode::Escape)));
 
     app.add_systems(Startup, setup_camera);
