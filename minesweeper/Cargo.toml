@@ -1,0 +1,15 @@
+[package]
+name = "minesweeper"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = []
+inspect = ["board_plugin/debug", "bevy-inspector-egui"]
+
+[dependencies]
+bevy = "0.13"
+board_plugin = { path = "../board_plugin" }
+
+# Hierarchy inspector debug
+bevy-inspector-egui = { version = "0.23", optional = true }
