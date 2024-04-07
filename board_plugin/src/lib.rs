@@ -1,20 +1,26 @@
+mod bounds;
 pub mod components;
 pub mod resources;
+mod systems;
 
 use bevy::log;
+use bevy::math::Vec3Swizzles;
 use bevy::prelude::*;
 use bevy::window::{PrimaryWindow, Window};
+
+use board::Board;
+use bounds::Bounds2;
 use components::*;
-use resources::tile_map::TileMap;
-use resources::BoardOptions;
-use resources::BoardPosition;
-use resources::TileSize;
+use resources::*;
+use tile::*;
+use tile_map::*;
 
 pub struct BoardPlugin;
 
 impl Plugin for BoardPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, Self::create_board);
+        app.add_systems(Startup, Self::create_board)
+            .add_systems(Update, systems::input::input_handling);
         #[cfg(feature = "inspect")]
         {
             app.register_type::<Coordinate>()
@@ -111,6 +117,14 @@ impl BoardPlugin {
                     font,
                 );
             });
+        commands.insert_resource(Board {
+            tile_map,
+            bounds: Bounds2 {
+                position: board_position.truncate(),
+                size: board_size,
+            },
+            tile_size,
+        });
     }
 
     fn spawn_tiles(
