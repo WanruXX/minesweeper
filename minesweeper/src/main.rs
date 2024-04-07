@@ -1,15 +1,14 @@
 use bevy::prelude::*;
 use bevy::window::{Window, WindowPlugin, WindowResolution};
+use board_plugin::components::Coordinate;
 use board_plugin::BoardPlugin;
 
-#[cfg(feature = "inspect")]
-use bevy::input::common_conditions;
 #[cfg(feature = "inspect")]
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
 fn main() {
     let mut app = App::new();
-    // Window setup
+
     app.add_plugins(DefaultPlugins.set(WindowPlugin {
         primary_window: Some(Window {
             resolution: WindowResolution::new(700., 800.),
@@ -21,9 +20,8 @@ fn main() {
     .add_plugins(BoardPlugin);
 
     #[cfg(feature = "inspect")]
-    app.add_plugins(WorldInspectorPlugin::default().run_if(
-        common_conditions::input_toggle_active(true, KeyCode::Escape),
-    ));
+    app.add_plugins(WorldInspectorPlugin::new())
+        .register_type::<Coordinate>();
 
     app.add_systems(Startup, setup_camera);
     app.run();

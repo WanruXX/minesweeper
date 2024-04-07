@@ -10,9 +10,12 @@ use bevy_inspector_egui::prelude::*;
 
 #[cfg_attr(feature = "inspect", derive(Reflect, InspectorOptions))]
 #[cfg_attr(feature = "inspect", reflect(InspectorOptions))]
+#[cfg_attr(feature = "inspect", inspector(validate = |ability| ability.current_charges <= ability.max_charges))]
 #[derive(Debug, Default, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Component)]
 pub struct Coordinate {
+    #[cfg_attr(feature = "inspect", inspector(min = 0, max = 50))]
     pub x: u16,
+    #[cfg_attr(feature = "inspect", inspector(min = 0, max = 50))]
     pub y: u16,
 }
 
@@ -49,6 +52,5 @@ impl Sub for Coordinate {
 impl Display for Coordinate {
     fn fmt(&self, f:&mut Formatter<'_>) ->fmt::Result{
         write!(f, "({},{})", self.x, self.y)
-        // f.write_str("({},{})", self.x, self.y)
     }
 }
