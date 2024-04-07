@@ -1,6 +1,5 @@
 use bevy::prelude::*;
 use bevy::window::{Window, WindowPlugin, WindowResolution};
-use board_plugin::components::Coordinate;
 use board_plugin::BoardPlugin;
 use board_plugin::resources::BoardOptions;
 
@@ -27,8 +26,7 @@ fn main() {
     .add_plugins(BoardPlugin);
 
     #[cfg(feature = "inspect")]
-    app.add_plugins(WorldInspectorPlugin::new())
-        .register_type::<Coordinate>();
+    app.add_plugins(WorldInspectorPlugin::new());
 
     app.add_systems(Startup, setup_camera);
     app.run();
