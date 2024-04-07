@@ -72,7 +72,7 @@ impl TileMap {
             .map(move |tuple| coordinate + tuple)
     }
 
-    pub fn isbomb_at(&self, coordinate: Coordinate) -> bool {
+    pub fn is_bomb_at(&self, coordinate: Coordinate) -> bool {
         if coordinate.x >= self.width || coordinate.y >= self.height {
             return false;
         };
@@ -80,12 +80,12 @@ impl TileMap {
     }
 
     pub fn bomb_count_at(&self, coordinate: Coordinate) -> u8 {
-        if self.isbomb_at(coordinate) {
+        if self.is_bomb_at(coordinate) {
             return 0;
         }
         let res = self
             .safe_square_at(coordinate)
-            .filter(|coord| self.isbomb_at(*coord))
+            .filter(|coord| self.is_bomb_at(*coord))
             .count();
         res as u8
     }
@@ -107,7 +107,7 @@ impl TileMap {
         for y in 0..self.height {
             for x in 0..self.width {
                 let coord = Coordinate { x, y };
-                if self.isbomb_at(coord) {
+                if self.is_bomb_at(coord) {
                     continue;
                 }
                 let num = self.bomb_count_at(coord);
