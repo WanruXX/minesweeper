@@ -4,15 +4,14 @@ pub mod resources;
 mod systems;
 
 use bevy::log;
-use bevy::math::Vec3Swizzles;
 use bevy::prelude::*;
+use bevy::utils::HashMap;
 use bevy::window::{PrimaryWindow, Window};
 
 use board::Board;
 use bounds::Bounds2;
 use components::*;
 use resources::*;
-use tile::*;
 use tile_map::*;
 
 pub struct BoardPlugin;
@@ -86,6 +85,8 @@ impl BoardPlugin {
             BoardPosition::Custom(p) => p,
         };
 
+        let mut covered_tiles =
+            HashMap::with_capacity((tile_map.width() * tile_map.height()).into());
         commands
             .spawn(SpatialBundle {
                 visibility: Visibility::Visible,
@@ -115,8 +116,11 @@ impl BoardPlugin {
                     options.tile_padding,
                     bomb_image,
                     font,
+                    Color::GRAY,
+                    &mut covered_tiles,
                 );
             });
+
         commands.insert_resource(Board {
             tile_map,
             bounds: Bounds2 {
@@ -124,6 +128,7 @@ impl BoardPlugin {
                 size: board_size,
             },
             tile_size,
+            covered_tiles,
         });
     }
 
@@ -134,6 +139,8 @@ impl BoardPlugin {
         padding: f32,
         bomb_image: Handle<Image>,
         font: Handle<Font>,
+        covered_tile_color: Color,
+        covered_tiles: &mut HashMap<Coordinate, Entity>,
     ) {
         let tile_size_nopadding = tile_size - padding;
         let tile_size_nopadding_vec2 = Some(Vec2::splat(tile_size_nopadding));
@@ -155,10 +162,26 @@ impl BoardPlugin {
 
                 let mut cmd = parent.spawn(tile_bundle);
 
+                let coordinate = Coordinate {
+                    x: x as u16,
+                    y: y as u16,
+                };
                 cmd.insert(Name::new(format!("Tile ({}, {})", x, y)))
-                    .insert(Coordinate {
-                        x: x as u16,
-                        y: y as u16,
+                    .insert(coordinate)
+                    .with_children(|parent| {
+                        let entity = parent
+                            .spawn(SpriteBundle {
+                                sprite: Sprite {
+                                    custom_size: tile_size_nopadding_vec2,
+                                    color: covered_tile_color,
+                                    ..Default::default()
+                                },
+                                transform: Transform::from_xyz(0., 0., 2.),
+                                ..Default::default()
+                            })
+                            .insert(Name::new("Tile Cover"))
+                            .id();
+                        covered_tiles.insert(coordinate, entity);
                     });
 
                 match tile {
