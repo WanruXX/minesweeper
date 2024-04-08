@@ -1,8 +1,10 @@
 mod bounds;
 pub mod components;
+mod events;
 pub mod resources;
 mod systems;
 
+use crate::events::*;
 use bevy::log;
 use bevy::prelude::*;
 use bevy::utils::HashMap;
@@ -19,7 +21,10 @@ pub struct BoardPlugin;
 impl Plugin for BoardPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, Self::create_board)
-            .add_systems(Update, systems::input::input_handling);
+            .add_systems(Update, systems::input::input_handling)
+            .add_systems(Update, systems::uncover::trigger_event_handler)
+            .add_systems(Update, systems::uncover::uncover_tiles)
+            .add_event::<TileTriggerEvent>();
         #[cfg(feature = "inspect")]
         {
             app.register_type::<Coordinate>()
@@ -116,7 +121,7 @@ impl BoardPlugin {
                     options.tile_padding,
                     bomb_image,
                     font,
-                    Color::GRAY,
+                    Color::DARK_GRAY,
                     &mut covered_tiles,
                 );
             });
