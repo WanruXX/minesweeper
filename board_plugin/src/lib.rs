@@ -1,30 +1,57 @@
 mod bounds;
-pub mod components;
 mod events;
+pub mod states;
+pub mod components;
 pub mod resources;
 mod systems;
 
-use crate::events::*;
 use bevy::log;
 use bevy::prelude::*;
 use bevy::utils::HashMap;
 use bevy::window::{PrimaryWindow, Window};
+use bevy_round_ui::prelude::RoundUiPlugin;
 
+use crate::events::*;
+use crate::button_style::ButtonStyle;
 use board::Board;
 use bounds::Bounds2;
+use states::AppState;
 use components::*;
 use resources::*;
-use tile_map::*;
+
+use std::env;
+use std::path::PathBuf;
+use std::str::FromStr;
+
 
 pub struct BoardPlugin;
 
 impl Plugin for BoardPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, Self::create_board)
-            .add_systems(Update, systems::input::input_handling)
-            .add_systems(Update, systems::uncover::trigger_event_handler)
-            .add_systems(Update, systems::uncover::uncover_tiles)
-            .add_event::<TileTriggerEvent>();
+        app.add_plugins(RoundUiPlugin)
+            .add_event::<TileTriggerEvent>()
+            .init_resource::<ButtonStyle>()
+            .insert_state(AppState::InGame)
+            .add_systems(OnEnter(AppState::InGame), Self::create_board)
+            .add_systems(
+                Update,
+                (
+                    systems::input::handle_mouse_input,
+                    systems::uncover::left_click_handler,
+                    systems::uncover::uncover_tiles,
+                )
+                    .run_if(in_state(AppState::InGame)),
+            )
+            .add_systems(OnExit(AppState::InGame), systems::uncover::clear_tiles)
+            .add_systems(OnEnter(AppState::Out), systems::exit_handler::setup_exit_window)
+            .add_systems(
+                Update,
+                (
+                    systems::exit_handler::handle_button_interactions,
+                    systems::exit_handler::handle_button_actions,
+                )
+                    .run_if(in_state(AppState::Out)),
+            );
         #[cfg(feature = "inspect")]
         {
             app.register_type::<Coordinate>()
@@ -53,6 +80,7 @@ impl BoardPlugin {
         board_options: Option<Res<BoardOptions>>,
         windows: Query<&Window, With<PrimaryWindow>>,
         asset_server: Res<AssetServer>,
+        
     ) {
         let window = windows
             .into_iter()
@@ -63,7 +91,7 @@ impl BoardPlugin {
             Some(o) => o.clone(),
         };
         // Tilemap generation
-        let mut tile_map = TileMap::create(options.map_size.0, options.map_size.1);
+        let mut tile_map = tile_map::TileMap::create(options.map_size.0, options.map_size.1);
         tile_map.set_bombs(options.bomb_count);
         #[cfg(feature = "inspect")]
         log::info!("{}", tile_map.console_output());
@@ -92,7 +120,7 @@ impl BoardPlugin {
 
         let mut covered_tiles =
             HashMap::with_capacity((tile_map.width() * tile_map.height()).into());
-        commands
+        let board_entity = commands
             .spawn(SpatialBundle {
                 visibility: Visibility::Visible,
                 transform: Transform::from_translation(board_position.into()),
@@ -111,9 +139,14 @@ impl BoardPlugin {
                         ..Default::default()
                     })
                     .insert(Name::new("Background"));
-
-                let bomb_image = asset_server.load("sprites/bomb.png");
-                let font = asset_server.load("fonts/pixeled.ttf");
+                let cur_path = PathBuf::from_str(env!("CARGO_MANIFEST_DIR")).unwrap();
+                let asset_path = cur_path
+                    .parent()
+                    .unwrap()
+                    .join("minesweeper")
+                    .join("assets");
+                let bomb_image = asset_server.load(asset_path.join("sprites").join("bomb.png"));
+                let font = asset_server.load(asset_path.join("fonts").join("pixeled.ttf"));
                 Self::spawn_tiles(
                     parent,
                     &tile_map,
@@ -124,7 +157,8 @@ impl BoardPlugin {
                     Color::DARK_GRAY,
                     &mut covered_tiles,
                 );
-            });
+            })
+            .id();
 
         commands.insert_resource(Board {
             tile_map,
@@ -134,12 +168,13 @@ impl BoardPlugin {
             },
             tile_size,
             covered_tiles,
+            entity: board_entity,
         });
     }
 
     fn spawn_tiles(
         parent: &mut ChildBuilder,
-        tile_map: &TileMap,
+        tile_map: &tile_map::TileMap,
         tile_size: f32,
         padding: f32,
         bomb_image: Handle<Image>,

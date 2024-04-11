@@ -10,6 +10,5 @@ inspect = ["board_plugin/inspect", "bevy-inspector-egui"]
 [dependencies]
 bevy = "0.13"
 board_plugin = { path = "../board_plugin" }
-
-# Hierarchy inspector debug
+bevy_round_ui = "0.2"
 bevy-inspector-egui = { version = "0.23", optional = true }

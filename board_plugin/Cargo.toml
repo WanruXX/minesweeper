@@ -10,17 +10,9 @@ default = []
 inspect = ["colored", "bevy-inspector-egui"]
 
 [dependencies]
-# Engine
 bevy = "0.13"
-
-# Serialization
 serde = "1.0"
-
-# Random
 rand = "0.8"
-
-# Console Debug
 colored = { version = "2.1", optional = true }
-
-# Hierarchy inspector debug
 bevy-inspector-egui = { version = "0.23", optional = true }
+bevy_round_ui = "0.2"
