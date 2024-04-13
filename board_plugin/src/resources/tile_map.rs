@@ -62,9 +62,9 @@ impl TileMap {
         self.height
     }
 
-    // pub fn bomb_count(&self) -> u16 {
-    //     self.bomb_count
-    // }
+    pub fn bomb_count(&self) -> u16 {
+        self.bomb_count
+    }
 
     pub fn safe_square_at(&self, coordinate: Coordinate) -> impl Iterator<Item = Coordinate> {
         SQUARE_COORDINATES

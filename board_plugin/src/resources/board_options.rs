@@ -16,6 +16,7 @@ impl Default for TileSize {
         }
     }
 }
+
 #[derive(Debug, Clone, Serialize, Deserialize, Resource)]
 pub enum BoardPosition {
     Centered { offset: Vec3 },

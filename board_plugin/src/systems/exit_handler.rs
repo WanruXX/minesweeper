@@ -1,4 +1,5 @@
 use crate::button_style::ButtonStyle;
+use crate::button_style::ExitWindowTitle;
 use crate::AppState;
 use crate::ExitWindow;
 use crate::RoundButton;
@@ -56,6 +57,7 @@ fn spawn_button(
 pub fn setup_exit_window(
     mut commands: Commands,
     button_style: Res<ButtonStyle>,
+    tile: Res<ExitWindowTitle>,
     mut materials: ResMut<Assets<RoundUiMaterial>>,
 ) {
     // Define a material for the panel.
@@ -108,7 +110,7 @@ pub fn setup_exit_window(
                 })
                 .with_children(|p| {
                     p.spawn(TextBundle::from_section(
-                        "OVER",
+                        tile.text.clone(),
                         TextStyle {
                             color: Color::WHITE,
                             font_size: 40.,
@@ -165,7 +167,6 @@ pub fn handle_button_actions(
                     commands.remove_resource::<Board>();
                     mouse_input.clear();
                     next_state.set(AppState::InGame);
-                    
                 }
                 ButtonAction::Quit => {
                     app_exit_events.send(AppExit);

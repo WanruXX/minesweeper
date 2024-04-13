@@ -1,7 +1,18 @@
 use bevy::prelude::*;
 use bevy_round_ui::prelude::*;
+use std::string::String;
 
-/// Resource containing material handles for the different button states
+#[derive(Resource)]
+pub struct ExitWindowTitle {
+    pub text: String,
+}
+
+impl FromWorld for ExitWindowTitle {
+    fn from_world(_world: &mut World) -> Self {
+        Self { text: "OVER".into() }
+    }
+}
+
 #[derive(Resource)]
 pub struct ButtonStyle {
     pub width: f32,
