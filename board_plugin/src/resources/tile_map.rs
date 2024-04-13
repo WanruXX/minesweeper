@@ -3,6 +3,7 @@ use crate::resources::tile::Tile;
 use rand::{thread_rng, Rng};
 use std::ops::{Deref, DerefMut};
 
+#[derive(Debug)]
 pub struct TileMap {
     bomb_count: u16,
     height: u16,

@@ -1,6 +1,5 @@
 [workspace]
 members = [
   "minesweeper",
-  "board_plugin"
-]
+  "board_plugin"]
 resolver = "2"
