@@ -1,0 +1,9 @@
+[target.wasm32-unknown-unknown]
+runner = "wasm-server-runner"
+
+[env]
+WASM_SERVER_RUNNER_DIR="${PWD}/../target/debug/examples/wasm"
+
+[alias]
+serve_release = "run --release --target wasm32-unknown-unknown"
+serve_debug = "run --target wasm32-unknown-unknown"
