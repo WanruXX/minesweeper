@@ -1,25 +1,24 @@
 mod bounds;
-mod events;
-pub mod states;
 pub mod components;
+mod events;
 pub mod resources;
+pub mod states;
 mod systems;
 
+#[cfg(feature = "inspect")]
 use bevy::log;
 use bevy::prelude::*;
 use bevy::utils::HashMap;
 use bevy::window::{PrimaryWindow, Window};
 use bevy_round_ui::prelude::RoundUiPlugin;
 
-use crate::button_style::ButtonStyle;
-use crate::button_style::ExitWindowTitle;
 use board::Board;
 use bounds::Bounds2;
-use states::AppState;
+use button_style::ButtonStyle;
 use components::*;
+use events::*;
 use resources::*;
-use crate::events::*;
-
+use states::AppState;
 
 pub struct BoardPlugin;
 
@@ -28,10 +27,7 @@ impl Plugin for BoardPlugin {
         app.add_plugins(RoundUiPlugin)
             .add_event::<TileTriggerEvent>()
             .add_event::<TileMarkEvent>()
-            .add_event::<GameCompletedEvent>()
             .init_resource::<ButtonStyle>()
-            .init_resource::<ExitWindowTitle>()
-            .insert_resource(ExitWindowTitle{text: "".into()})
             .insert_state(AppState::InGame)
             .add_systems(OnEnter(AppState::InGame), Self::create_board)
             .add_systems(
@@ -45,7 +41,10 @@ impl Plugin for BoardPlugin {
                     .run_if(in_state(AppState::InGame)),
             )
             .add_systems(OnExit(AppState::InGame), systems::uncover::clear_tiles)
-            .add_systems(OnEnter(AppState::Out), systems::exit_handler::setup_exit_window)
+            .add_systems(
+                OnEnter(AppState::Out),
+                systems::exit_handler::setup_exit_window,
+            )
             .add_systems(
                 Update,
                 (
@@ -61,21 +60,12 @@ impl Plugin for BoardPlugin {
                 .register_type::<BombNeighbor>()
                 .register_type::<Uncover>();
         }
+        #[cfg(feature = "inspect")]
         log::info!("Loaded Board Plugin");
     }
 }
 
 impl BoardPlugin {
-    fn adaptative_tile_size(
-        window: &Window,
-        (min, max): (f32, f32),      // Tile size constraints
-        (width, height): (u16, u16), // Tile map dimensions
-    ) -> f32 {
-        let max_width = window.width() / width as f32;
-        let max_heigth = window.height() / height as f32;
-        max_width.min(max_heigth).clamp(min, max)
-    }
-
     /// System to generate the complete board
     pub fn create_board(
         mut commands: Commands,
@@ -88,10 +78,10 @@ impl BoardPlugin {
             .next()
             .expect("no primary window found!");
         let options = match board_options {
-            None => BoardOptions::default(), // If no options is set we use the default one
+            None => BoardOptions::default(),
             Some(o) => o.clone(),
         };
-        // Tilemap generation
+
         let mut tile_map = tile_map::TileMap::create(options.map_size.0, options.map_size.1);
         tile_map.set_bombs(options.bomb_count);
         #[cfg(feature = "inspect")]
@@ -105,11 +95,11 @@ impl BoardPlugin {
                 (tile_map.width(), tile_map.height()),
             ),
         };
-
         let board_size = Vec2::new(
             tile_map.width() as f32 * tile_size,
             tile_map.height() as f32 * tile_size,
         );
+        #[cfg(feature = "inspect")]
         log::info!("board size: {}", board_size);
 
         let board_position = match options.position {
@@ -130,16 +120,7 @@ impl BoardPlugin {
             .insert(Name::new("Board"))
             .with_children(|parent| {
                 parent
-                    .spawn(SpriteBundle {
-                        sprite: Sprite {
-                            color: board_assets.board_material.color,
-                            custom_size: Some(board_size),
-                            ..Default::default()
-                        },
-                        texture: board_assets.board_material.texture.clone(),
-                        transform: Transform::from_xyz(board_size.x / 2., board_size.y / 2., 0.),
-                        ..Default::default()
-                    })
+                    .spawn(Self::board_base_bundle(&board_assets, board_size))
                     .insert(Name::new("Background"));
                 Self::spawn_tiles(
                     parent,
@@ -165,6 +146,29 @@ impl BoardPlugin {
         });
     }
 
+    fn adaptative_tile_size(
+        window: &Window,
+        (min, max): (f32, f32),      // Tile size constraints
+        (width, height): (u16, u16), // Tile map dimensions
+    ) -> f32 {
+        let max_width = window.width() / width as f32;
+        let max_heigth = window.height() / height as f32;
+        max_width.min(max_heigth).clamp(min, max)
+    }
+
+    fn board_base_bundle(board_assets: &BoardAssets, board_size: Vec2) -> SpriteBundle {
+        SpriteBundle {
+            sprite: Sprite {
+                color: board_assets.board_material.color,
+                custom_size: Some(board_size),
+                ..Default::default()
+            },
+            texture: board_assets.board_material.texture.clone(),
+            transform: Transform::from_xyz(board_size.x / 2., board_size.y / 2., 0.),
+            ..Default::default()
+        }
+    }
+
     fn spawn_tiles(
         parent: &mut ChildBuilder,
         tile_map: &tile_map::TileMap,
@@ -177,41 +181,26 @@ impl BoardPlugin {
         let tile_size_nopadding_vec2 = Some(Vec2::splat(tile_size_nopadding));
         for (y, line) in tile_map.iter().enumerate() {
             for (x, tile) in line.iter().enumerate() {
-                let tile_bundle = SpriteBundle {
-                    sprite: Sprite {
-                        custom_size: tile_size_nopadding_vec2,
-                        color: board_assets.tile_material.color,
-                        ..Default::default()
-                    },
-                    texture: board_assets.tile_material.texture.clone(),
-                    transform: Transform::from_xyz(
-                        (x as f32 * tile_size) + (tile_size / 2.),
-                        (y as f32 * tile_size) + (tile_size / 2.),
-                        1.,
-                    ),
-                    ..Default::default()
-                };
-
-                let mut cmd = parent.spawn(tile_bundle);
-
                 let coordinate = Coordinate {
                     x: x as u16,
                     y: y as u16,
                 };
+
+                let mut cmd = parent.spawn(Self::tile_bundle(
+                    board_assets,
+                    tile_size_nopadding_vec2,
+                    tile_size,
+                    coordinate,
+                ));
+
                 cmd.insert(Name::new(format!("Tile ({}, {})", x, y)))
                     .insert(coordinate)
                     .with_children(|parent| {
                         let entity = parent
-                            .spawn(SpriteBundle {
-                                sprite: Sprite {
-                                    custom_size: tile_size_nopadding_vec2,
-                                    color: board_assets.covered_tile_material.color,
-                                    ..Default::default()
-                                },
-                                texture:board_assets.covered_tile_material.texture.clone(),
-                                transform: Transform::from_xyz(0., 0., 2.),
-                                ..Default::default()
-                            })
+                            .spawn(Self::tile_cover_bundle(
+                                board_assets,
+                                tile_size_nopadding_vec2,
+                            ))
                             .insert(Name::new("Tile Cover"))
                             .id();
                         covered_tiles.insert(coordinate, entity);
@@ -220,24 +209,15 @@ impl BoardPlugin {
                 match tile {
                     crate::resources::tile::Tile::Bomb => {
                         cmd.insert(Bomb).with_children(|parent| {
-                            parent.spawn(SpriteBundle {
-                                sprite: Sprite {
-                                    color: board_assets.bomb_material.color,
-                                    custom_size: tile_size_nopadding_vec2,
-                                    ..Default::default()
-                                },
-                                transform: Transform::from_xyz(0., 0., 1.),
-                                texture: board_assets.bomb_material.texture.clone(),
-                                ..Default::default()
-                            });
+                            parent.spawn(Self::bomb_bundle(board_assets, tile_size_nopadding_vec2));
                         });
                     }
                     crate::resources::tile::Tile::BombNeighbor(count) => {
                         let bomb_neighbor = BombNeighbor { count: *count };
                         cmd.insert(bomb_neighbor).with_children(|parent| {
                             parent.spawn(Self::bomb_count_text_bundle(
-                                *count,
                                 board_assets,
+                                *count,
                                 tile_size_nopadding,
                             ));
                         });
@@ -248,7 +228,55 @@ impl BoardPlugin {
         }
     }
 
-    fn bomb_count_text_bundle(count: u8, board_assets: &BoardAssets, size: f32) -> Text2dBundle {
+    fn tile_bundle(
+        board_assets: &BoardAssets,
+        size: Option<Vec2>,
+        tile_size: f32,
+        coord: Coordinate,
+    ) -> SpriteBundle {
+        SpriteBundle {
+            sprite: Sprite {
+                custom_size: size,
+                color: board_assets.tile_material.color,
+                ..Default::default()
+            },
+            texture: board_assets.tile_material.texture.clone(),
+            transform: Transform::from_xyz(
+                (coord.x as f32 * tile_size) + (tile_size / 2.),
+                (coord.y as f32 * tile_size) + (tile_size / 2.),
+                1.,
+            ),
+            ..Default::default()
+        }
+    }
+
+    fn tile_cover_bundle(board_assets: &BoardAssets, size: Option<Vec2>) -> SpriteBundle {
+        SpriteBundle {
+            sprite: Sprite {
+                custom_size: size,
+                color: board_assets.covered_tile_material.color,
+                ..Default::default()
+            },
+            texture: board_assets.covered_tile_material.texture.clone(),
+            transform: Transform::from_xyz(0., 0., 2.),
+            ..Default::default()
+        }
+    }
+
+    fn bomb_bundle(board_assets: &BoardAssets, size: Option<Vec2>) -> SpriteBundle {
+        SpriteBundle {
+            sprite: Sprite {
+                color: board_assets.bomb_material.color,
+                custom_size: size,
+                ..Default::default()
+            },
+            transform: Transform::from_xyz(0., 0., 1.),
+            texture: board_assets.bomb_material.texture.clone(),
+            ..Default::default()
+        }
+    }
+
+    fn bomb_count_text_bundle(board_assets: &BoardAssets, count: u8, size: f32) -> Text2dBundle {
         let color = board_assets.bomb_counter_color(count);
         Text2dBundle {
             text: Text::from_sections(vec![TextSection {

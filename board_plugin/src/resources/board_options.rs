@@ -1,5 +1,5 @@
-use bevy::prelude::Vec3;
 use bevy::ecs::system::Resource;
+use bevy::prelude::Vec3;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Resource)]

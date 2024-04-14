@@ -1,8 +1,5 @@
 use bevy::prelude::*;
-// use bevy::render::texture::DEFAULT_IMAGE_HANDLE;
-// use bevy::asset::Handle;
 
-/// Material of a `Sprite` with a texture and color
 #[derive(Debug, Clone)]
 pub struct SpriteMaterial {
     pub color: Color,
@@ -18,31 +15,19 @@ impl Default for SpriteMaterial {
     }
 }
 
-/// Assets for the board. Must be used as a resource.
-///
-/// Use the loader for partial setup
 #[derive(Debug, Clone, Resource)]
 pub struct BoardAssets {
-    /// Label
     pub label: String,
-    ///
     pub board_material: SpriteMaterial,
-    ///
     pub tile_material: SpriteMaterial,
-    ///
     pub covered_tile_material: SpriteMaterial,
-    ///
     pub bomb_counter_font: Handle<Font>,
-    ///
     pub bomb_counter_colors: Vec<Color>,
-    ///
     pub flag_material: SpriteMaterial,
-    ///
     pub bomb_material: SpriteMaterial,
 }
 
 impl BoardAssets {
-    /// Default bomb counter color set
     pub fn default_colors() -> Vec<Color> {
         vec![
             Color::WHITE,
@@ -53,7 +38,6 @@ impl BoardAssets {
         ]
     }
 
-    /// Safely retrieves the color matching a bomb counter
     pub fn bomb_counter_color(&self, counter: u8) -> Color {
         let counter = counter.saturating_sub(1) as usize;
         match self.bomb_counter_colors.get(counter) {

@@ -1,9 +1,9 @@
 use bevy::prelude::Component;
 
 #[cfg(feature = "inspect")]
-use bevy_inspector_egui::prelude::*;
-#[cfg(feature = "inspect")]
 use bevy::prelude::Reflect;
+#[cfg(feature = "inspect")]
+use bevy_inspector_egui::prelude::*;
 
 #[cfg_attr(feature = "inspect", derive(Reflect, InspectorOptions))]
 #[cfg_attr(feature = "inspect", reflect(InspectorOptions))]

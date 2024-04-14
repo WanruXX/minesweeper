@@ -10,7 +10,7 @@ pub struct TileMap {
     width: u16,
     map: Vec<Vec<Tile>>,
 }
-// Delta coordinates for all 8 square neighbors
+
 const SQUARE_COORDINATES: [(i8, i8); 8] = [
     (-1, -1), // Bottom left
     (0, -1),  // Bottom
