@@ -5,9 +5,7 @@ use bevy::window::{Window, WindowPlugin, WindowResolution};
 #[cfg(feature = "inspect")]
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
-use board_plugin::resources::BoardAssets;
-use board_plugin::resources::BoardOptions;
-use board_plugin::resources::SpriteMaterial;
+use board_plugin::resources::{BoardAssets, BoardOptions, ExitWindowTitle, SpriteMaterial};
 use board_plugin::states::AppState;
 use board_plugin::BoardPlugin;
 
@@ -25,14 +23,17 @@ fn main() {
         }),
         ..default()
     }))
-    .add_systems(Startup, setup_board)
+    .init_resource::<ExitWindowTitle>()
+    .insert_resource(ExitWindowTitle {
+        text: "MENU".into(),
+    })
+    .add_systems(Startup, (setup_camera, setup_board))
     .add_plugins(BoardPlugin)
     .add_systems(Update, escape_handler.run_if(in_state(AppState::InGame)));
 
     #[cfg(feature = "inspect")]
     app.add_plugins(WorldInspectorPlugin::new());
 
-    app.add_systems(Startup, setup_camera);
     app.run();
 }
 
@@ -40,10 +41,7 @@ fn setup_camera(mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
 }
 
-fn setup_board(
-    mut commands: Commands,
-    asset_server: Res<AssetServer>,
-) {
+fn setup_board(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.insert_resource(BoardOptions {
         map_size: (20, 20),
         bomb_count: 40,
@@ -67,7 +65,6 @@ fn setup_board(
             color: Color::DARK_GRAY,
             ..Default::default()
         },
-
         bomb_counter_font: asset_server.load(asset_path.join("fonts").join("pixeled.ttf")),
         bomb_counter_colors: BoardAssets::default_colors(),
         flag_material: SpriteMaterial {
@@ -79,16 +76,18 @@ fn setup_board(
             color: Color::WHITE,
         },
     });
-    println!("Loaded assets!");
+    log::info!("Loaded assets!");
 }
 
 fn escape_handler(
     mut key_evr: EventReader<KeyboardInput>,
+    mut exit_window_tile: ResMut<ExitWindowTitle>,
     mut next_state: ResMut<NextState<AppState>>,
 ) {
     for event in key_evr.read() {
         if let KeyCode::Escape = event.key_code {
             log::info!("clearing game");
+            exit_window_tile.text = "MENU".into();
             next_state.set(AppState::Out);
         }
     }

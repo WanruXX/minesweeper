@@ -1,9 +1,9 @@
 use crate::button_style::ButtonStyle;
 use crate::button_style::ExitWindowTitle;
 use crate::AppState;
+use crate::Board;
 use crate::ExitWindow;
 use crate::RoundButton;
-use crate::Board;
 use bevy::{app::AppExit, prelude::*};
 use bevy_round_ui::{autosize::*, prelude::*};
 
@@ -13,6 +13,89 @@ use bevy::input::ButtonInput;
 pub enum ButtonAction {
     Play,
     Quit,
+}
+
+pub fn setup_exit_window(
+    mut commands: Commands,
+    button_style: Res<ButtonStyle>,
+    title: Res<ExitWindowTitle>,
+    mut materials: ResMut<Assets<RoundUiMaterial>>,
+) {
+    // Define a material for the panel.
+    // This material looks like it has a border, because we applied an equal offset to all sides.
+    let panel_width = 300.0;
+    let panel_height = 250.0;
+    let panel_material = materials.add(RoundUiMaterial {
+        background_color: Color::hex("5cb3af").unwrap(),
+        border_color: Color::WHITE,
+        border_radius: RoundUiBorder::all(20.0).into(),
+        size: Vec2::new(panel_width, panel_height),
+        offset: RoundUiOffset::all(6.0).into(),
+    });
+
+    // Spawn the screen layout, containing a centered panel with menu items
+    commands
+        .spawn(NodeBundle {
+            style: Style {
+                width: Val::Percent(100.0),
+                height: Val::Percent(100.0),
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                ..default()
+            },
+            ..default()
+        })
+        .with_children(|p| {
+            p.spawn(panel_bundle(panel_material, panel_width, panel_height))
+                .with_children(|p| {
+                    spawn_title(p, &title);
+                    spawn_button(p, &button_style, "New Game", ButtonAction::Play);
+                    spawn_button(p, &button_style, "Quit", ButtonAction::Quit);
+                });
+        })
+        .insert(ExitWindow);
+}
+
+fn spawn_title(parent: &mut ChildBuilder, title: &Res<ExitWindowTitle>) {
+    parent
+        .spawn(NodeBundle {
+            style: Style {
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                margin: UiRect::bottom(Val::Px(30.)),
+                ..default()
+            },
+            ..default()
+        })
+        .with_children(|parent| {
+            parent.spawn(TextBundle::from_section(
+                title.text.clone(),
+                TextStyle {
+                    color: Color::WHITE,
+                    font_size: 40.,
+                    ..default()
+                },
+            ));
+        });
+}
+
+fn panel_bundle(
+    panel_material: Handle<RoundUiMaterial>,
+    panel_width: f32,
+    panel_height: f32,
+) -> MaterialNodeBundle<RoundUiMaterial> {
+    MaterialNodeBundle {
+        material: panel_material,
+        style: Style {
+            width: Val::Px(panel_width),
+            height: Val::Px(panel_height),
+            flex_direction: FlexDirection::Column,
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::Center,
+            ..default()
+        },
+        ..default()
+    }
 }
 
 fn spawn_button(
@@ -54,80 +137,6 @@ fn spawn_button(
         .id()
 }
 
-pub fn setup_exit_window(
-    mut commands: Commands,
-    button_style: Res<ButtonStyle>,
-    tile: Res<ExitWindowTitle>,
-    mut materials: ResMut<Assets<RoundUiMaterial>>,
-) {
-    // Define a material for the panel.
-    // This material looks like it has a border, because we applied an equal offset to all sides.
-    let panel_width = 300.0;
-    let panel_height = 250.0;
-    let panel_material = materials.add(RoundUiMaterial {
-        background_color: Color::hex("5cb3af").unwrap(),
-        border_color: Color::WHITE,
-        border_radius: RoundUiBorder::all(20.0).into(),
-        size: Vec2::new(panel_width, panel_height),
-        offset: RoundUiOffset::all(6.0).into(),
-    });
-
-    // Spawn the screen layout, containing a centered panel with menu items
-    commands
-        .spawn(NodeBundle {
-            style: Style {
-                width: Val::Percent(100.0),
-                height: Val::Percent(100.0),
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                ..default()
-            },
-            ..default()
-        })
-        .with_children(|p| {
-            p.spawn(MaterialNodeBundle {
-                material: panel_material,
-                style: Style {
-                    width: Val::Px(panel_width),
-                    height: Val::Px(panel_height),
-                    flex_direction: FlexDirection::Column,
-                    align_items: AlignItems::Center,
-                    justify_content: JustifyContent::Center,
-                    ..default()
-                },
-                ..default()
-            })
-            .with_children(|p| {
-                // Spawn the title
-                p.spawn(NodeBundle {
-                    style: Style {
-                        align_items: AlignItems::Center,
-                        justify_content: JustifyContent::Center,
-                        margin: UiRect::bottom(Val::Px(30.)),
-                        ..default()
-                    },
-                    ..default()
-                })
-                .with_children(|p| {
-                    p.spawn(TextBundle::from_section(
-                        tile.text.clone(),
-                        TextStyle {
-                            color: Color::WHITE,
-                            font_size: 40.,
-                            ..default()
-                        },
-                    ));
-                });
-
-                // Spawn the buttons
-                spawn_button(p, &button_style, "New Game", ButtonAction::Play);
-                spawn_button(p, &button_style, "Quit", ButtonAction::Quit);
-            });
-        })
-        .insert(ExitWindow);
-}
-
-/// Updates button materials when their interaction changes
 #[allow(clippy::type_complexity)]
 pub fn handle_button_interactions(
     mut interaction_query: Query<
@@ -145,7 +154,6 @@ pub fn handle_button_interactions(
     }
 }
 
-/// Handle button click events
 pub fn handle_button_actions(
     mut commands: Commands,
     interaction_query: Query<(&Interaction, &ButtonAction), Changed<Interaction>>,

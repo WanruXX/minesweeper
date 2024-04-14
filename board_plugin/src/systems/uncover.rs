@@ -1,5 +1,5 @@
 use crate::button_style::ExitWindowTitle;
-use crate::events::{TileTriggerEvent};
+use crate::events::TileTriggerEvent;
 use crate::{AppState, Board, Bomb, BombNeighbor, Coordinate, Uncover};
 use bevy::log;
 use bevy::prelude::*;
@@ -23,8 +23,6 @@ pub fn uncover_tiles(
     children: Query<(Entity, &Parent), With<Uncover>>,
     parents: Query<(&Coordinate, Option<&Bomb>, Option<&BombNeighbor>)>,
     mut next_state: ResMut<NextState<AppState>>,
-    // mut board_completed_event_wr: EventWriter<BoardCompletedEvent>,
-    // mut bomb_explosion_event_wr: EventWriter<BombExplosionEvent>,
 ) {
     for (entity, parent) in children.iter() {
         commands.entity(entity).despawn_recursive();

@@ -9,7 +9,9 @@ pub struct ExitWindowTitle {
 
 impl FromWorld for ExitWindowTitle {
     fn from_world(_world: &mut World) -> Self {
-        Self { text: "OVER".into() }
+        Self {
+            text: "OVER".into(),
+        }
     }
 }
 
