@@ -10,3 +10,5 @@ cargo run
 ## Demo
 https://github.com/WanruXX/minesweeper/assets/48364194/4976de5c-7ad1-4c72-b627-32a7ddf18d97
 
+## Tutorial
+Upcoming soon!
